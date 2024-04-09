@@ -68,7 +68,12 @@ ci_result_t ciMediaLoadBMP(image_t* p_image, const char* path)
   {
     fclose(f);
     return CI_ERR_IN;
+  }
 
+  if (fh.head != CI_BITMAP_HEAD) 
+  {
+    fclose(f);
+    return CI_ERR_INVALID;
   }
 
   if (fread(&ih, sizeof(bitmap_info_header_t), 1, f) != 1)
