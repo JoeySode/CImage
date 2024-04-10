@@ -1,4 +1,5 @@
 
+
 #ifndef CI_IMAGE_H_
 
 #define CI_IMAGE_H_
@@ -21,7 +22,7 @@ typedef void(*for_each_pixel_i_fn_t)(void* p_pixel, size_t i, void* params);
 typedef void(*for_each_pixel_xy_fn_t)(void* p_pixel, size_t x, size_t y, void* params);
 
 // An image that is represented by its width and height and a pointer to its pixel data (when indexing data, (0, 0) is the bottom left corner)
-typedef struct
+typedef struct image_t
 {
   void* data;       // A pointer to the image's data (pointer value should only be modified by CImage functions, indexed values can be modified)
   size_t w;         // The image's width (should only be modified by CImage functions)
@@ -32,7 +33,7 @@ image_t;
 
 
 // Initializes the image with the given width height and color format
-ci_result_t ciInitImage(image_t* p_image, size_t width, size_t height, color_fmt_t color_fmt);
+ci_result_t ciInitImage(image_t* p_image, size_t width, size_t height, color_fmt_t fmt);
 
 // Destroys the image
 void ciDestroyImage(image_t* p_image);
@@ -41,8 +42,8 @@ void ciDestroyImage(image_t* p_image);
 // Copies the first image to the second, including the image data (dst should not already have any data)
 ci_result_t ciImageCopy(image_t* src, image_t* dst);
 
-// Resizes the image to the specified width and height, losing all previous color data
-ci_result_t ciImageResize(image_t* p_image, size_t width, size_t height);
+// Scales the image to the new width and height, stretching or shrinking the color data
+ci_result_t ciImageScale(image_t* p_image, size_t new_width, size_t new_height);
 
 // Converts the given x and y coordinates to a singular index
 size_t ciImageIndexFromXY(image_t* p_image, size_t x, size_t y);

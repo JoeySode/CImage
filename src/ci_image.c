@@ -1,14 +1,17 @@
 
+
+
 #include "ci_image.h"
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 
-ci_result_t ciInitImage(image_t* p_image, size_t width, size_t height, color_fmt_t color_fmt)
+ci_result_t ciInitImage(image_t* p_image, size_t width, size_t height, color_fmt_t fmt)
 {
   // Allocate the data
-  p_image->data = (void*)calloc(width * height, ciColorFmtSize(color_fmt));
+  p_image->data = (void*)calloc(width * height, ciColorFmtSize(fmt));
 
   if (!p_image->data)
   {
@@ -20,7 +23,7 @@ ci_result_t ciInitImage(image_t* p_image, size_t width, size_t height, color_fmt
   p_image->w = width;
   p_image->h = height;
 
-  p_image->fmt = color_fmt;
+  p_image->fmt = fmt;
 
   // Done
   return CI_SUCCESS;
@@ -60,21 +63,42 @@ ci_result_t ciImageCopy(image_t* src, image_t* dst)
   return CI_SUCCESS;
 }
 
-ci_result_t ciImageResize(image_t* p_image, size_t width, size_t height)
+ci_result_t ciImageScale(image_t* p_image, size_t new_width, size_t new_height)
 {
-  // Free any old data
-  if (p_image->data)
-    free(p_image->data);
-
   // Allocate the new data
-  p_image->data = calloc(width * height, ciColorFmtSize(p_image->fmt));
+  uint8_t* new_data = (uint8_t*)malloc(new_width * new_height * ciColorFmtSize(p_image->fmt));
 
-  if (!p_image->data)
-  {
-    p_image->w = 0;
-    p_image->h = 0;
+  if (!new_data)
     return CI_ERR_ALLOC;
+
+  // Copy pixels from the old data to the new data
+  uint8_t* old_data = (uint8_t*)p_image->data;
+  size_t pixel_size = ciColorFmtSize(p_image->fmt);
+  double x_skip = (double)p_image->w / (double)new_width;
+  double y_skip = (double)p_image->h / (double)new_height;
+  double src_x = 0.0;
+  double src_y = 0.0;
+
+  for (size_t y = 0; y < new_height; y++)
+  {
+    for (size_t x = 0; x < new_width; x++)
+    {
+      memcpy(&new_data[pixel_size * ((y * new_width) + x)], &old_data[pixel_size * ciImageIndexFromXY(p_image, (size_t)src_x, (size_t)src_y)], pixel_size);
+
+      src_x += x_skip;
+    }
+
+    src_x = 0.0;
+    src_y += y_skip;
   }
+
+  // Swap data and free the old data
+  free(p_image->data);
+
+  p_image->data = new_data;
+
+  p_image->w = new_width;
+  p_image->h = new_height;
 
   // Done
   return CI_SUCCESS;

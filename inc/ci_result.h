@@ -4,7 +4,7 @@
 #define CI_RESULT_H_
 
 
-typedef enum
+typedef enum ci_result_t
 {
   CI_SUCCESS = 0,  // No error, success
 

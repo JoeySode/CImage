@@ -12,7 +12,7 @@
 typedef uint8_t chnl_t;
 
 // A BGR color whose colors can be accessed by channel (foo.r, foo.g, foo.b)
-typedef struct
+typedef struct bgr_t
 {
   chnl_t b;
   chnl_t g;
@@ -21,7 +21,7 @@ typedef struct
 bgr_t;
 
 // An RGB color whose colors can be accessed by channel (foo.r, foo.g, foo.b)
-typedef struct
+typedef struct rgb_t
 {
   chnl_t r;
   chnl_t g;
@@ -30,7 +30,7 @@ typedef struct
 rgb_t;
 
 // A BGRA color whose colors can be accessed directly (foo.c) or by channel (foo.r, foo.g etc.)
-typedef union 
+typedef union bgra_t
 {
   struct
   {
@@ -44,7 +44,7 @@ typedef union
 bgra_t;
 
 // An RGBA color whose colors can be accessed directly (foo.c) or by channel (foo.r, foo.g etc.)
-typedef union 
+typedef union rgba_t
 {
   struct
   {
@@ -58,7 +58,7 @@ typedef union
 rgba_t;
 
 // An enum representing different color formats
-typedef enum
+typedef enum color_fmt_t
 {
   CI_FMT_NONE,  // Undefines/unknown format
 
