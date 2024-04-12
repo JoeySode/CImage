@@ -9,6 +9,16 @@
 #define CI_BITMAP_HEAD    0x4D42    // "BM"
 
 
+typedef struct image_t__
+{
+  void* data;       // A pointer to the image's data
+  size_t w;         // The image's width
+  size_t h;         // The image's height
+  color_fmt_t fmt;  // The image's color format
+}
+image_t__;
+
+
 // A struct representing a bitmap header
 typedef struct __attribute__((packed))
 {
@@ -88,41 +98,53 @@ ci_result_t ciMediaLoadBMP(image_t* p_image, const char* path)
 
   if (fmt == CI_FMT_NONE)
   {
-    ciDestroyImage(p_image);
     fclose(f);
     return CI_ERR_INVALID;
   }
 
-  // Allocate the image data
-  p_image->data = (void*)malloc(ih.image_size);
+  // Allocate the image
+  image_t__* image = (image_t__*)malloc(sizeof(image_t__));
 
-  if (!p_image->data)
+  if (!image)
   {
     fclose(f);
     return CI_ERR_ALLOC;
   }
 
-  // Read the pixel data
-  if (fread(p_image->data, 1, ih.image_size, f) != ih.image_size)
+  // Allocate the image's data
+  image->data = (void*)malloc(ih.image_size);
+
+  if (!image->data)
   {
-    ciDestroyImage(p_image);
+    free(image);
+    fclose(f);
+    return CI_ERR_ALLOC;
+  }
+
+  // Read the pixel data
+  if (fread(image->data, 1, ih.image_size, f) != ih.image_size)
+  {
+    free(image->data);
+    free(image);
     fclose(f);
     return CI_ERR_IN;
   }
 
-  // Set up remaining data
-  p_image->w = ih.w;
-  p_image->h = ih.h;
+  // Finish image initialization
+  image->w = ih.w;
+  image->h = ih.h;
 
-  p_image->fmt = fmt;
+  image->fmt = fmt;
 
   // Done
   fclose(f);
 
+  *p_image = image;
+
   return CI_SUCCESS;
 }
 
-ci_result_t ciMediaSaveBMP(image_t* p_image, const char* path)
+ci_result_t ciMediaSaveBMP(image_t image, const char* path)
 {
   // Open the file
   FILE* f = fopen(path, "wb");
@@ -131,7 +153,7 @@ ci_result_t ciMediaSaveBMP(image_t* p_image, const char* path)
     return CI_ERR_FILE;
 
   // Set up the headers
-  size_t image_size = ciImageSize(p_image);
+  size_t image_size = image->w * image->h * ciColorFmtSize(image->fmt);
 
   bitmap_head_t fh;
 
@@ -143,10 +165,10 @@ ci_result_t ciMediaSaveBMP(image_t* p_image, const char* path)
   bitmap_info_header_t ih;
 
   ih.size = sizeof(bitmap_info_header_t);
-  ih.w = p_image->w;
-  ih.h = p_image->h;
+  ih.w = image->w;
+  ih.h = image->h;
   ih.num_planes = 1;
-  ih.pixel_size_b = ciColorFmtSize(p_image->fmt) * 8;
+  ih.pixel_size_b = ciColorFmtSize(image->fmt) * 8;
   ih.compression = 0;
   ih.image_size = image_size;
   ih.x_ppm = 0;
@@ -168,7 +190,7 @@ ci_result_t ciMediaSaveBMP(image_t* p_image, const char* path)
   }
 
   // Write the pixel data
-  if (fwrite(p_image->data, 1, image_size, f) != image_size)
+  if (fwrite(image->data, 1, image_size, f) != image_size)
   {
     fclose(f);
     return CI_ERR_OUT;

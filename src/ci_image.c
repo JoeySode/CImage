@@ -8,74 +8,91 @@
 #include <stdio.h>
 
 
-ci_result_t ciInitImage(image_t* p_image, size_t width, size_t height, color_fmt_t fmt)
+typedef struct image_t__
 {
-  // Allocate the data
-  p_image->data = (void*)calloc(width * height, ciColorFmtSize(fmt));
+  void* data;       // A pointer to the image's data
+  size_t w;         // The image's width
+  size_t h;         // The image's height
+  color_fmt_t fmt;  // The image's color format
+}
+image_t__;
 
-  if (!p_image->data)
+
+ci_result_t ciImageCreate(image_t* p_image, size_t width, size_t height, color_fmt_t fmt)
+{
+  // Allocate the image
+  image_t__* image = (image_t__*)malloc(sizeof(image_t__));
+
+  if (!image)
+    return CI_ERR_ALLOC;
+
+  // Allocate the data
+  image->data = (void*)calloc(width * height, ciColorFmtSize(fmt));
+
+  if (!image->data)
   {
-    free(p_image);
+    free(image);
     return CI_ERR_ALLOC;
   }
 
   // Set remaining values
-  p_image->w = width;
-  p_image->h = height;
+  image->w = width;
+  image->h = height;
 
-  p_image->fmt = fmt;
+  image->fmt = fmt;
 
   // Done
+  *p_image = image;
+
   return CI_SUCCESS;
 }
 
-void ciDestroyImage(image_t* p_image)
+void ciImageDestroy(image_t image)
 {
-  if (p_image->data)
+  if (image->data)
   {
-    free(p_image->data);
-    p_image->data = NULL;
+    free(image->data);
+    image->data = NULL;
   }
 }
 
 
 // Copies the first image to the second
-ci_result_t ciImageCopy(image_t* src, image_t* dst)
+ci_result_t ciImageCopy(image_t src, image_t* p_dst)
 {
-  size_t image_size = ciImageSize(src);
+  // Create the image
+  image_t image;
 
-  // Allocate the new data
-  dst->data = (void*)malloc(image_size);
+  ci_result_t r = ciImageCreate(&image, src->w, src->h, src->fmt);
 
-  if (!dst->data)
-    return CI_ERR_ALLOC;
+  if (r != CI_SUCCESS)
+    return r;
 
-  // Copy image data
-  memcpy(dst->data, src->data, image_size);
-
-  // Copy remaining data
-  dst->w = src->w;
-  dst->h = src->h;
-
-  dst->fmt = src->fmt;
+  // Copy the image data
+  memcpy(image->data, src->data, ciImageGetSize(src));
 
   // Done
+  *p_dst = image;
+
   return CI_SUCCESS;
 }
 
-ci_result_t ciImageScale(image_t* p_image, size_t new_width, size_t new_height)
+ci_result_t ciImageScale(image_t image, size_t new_width, size_t new_height)
 {
   // Allocate the new data
-  uint8_t* new_data = (uint8_t*)malloc(new_width * new_height * ciColorFmtSize(p_image->fmt));
+  uint8_t* new_data = (uint8_t*)malloc(new_width * new_height * ciColorFmtSize(image->fmt));
 
   if (!new_data)
     return CI_ERR_ALLOC;
 
   // Copy pixels from the old data to the new data
-  uint8_t* old_data = (uint8_t*)p_image->data;
-  size_t pixel_size = ciColorFmtSize(p_image->fmt);
-  double x_skip = (double)p_image->w / (double)new_width;
-  double y_skip = (double)p_image->h / (double)new_height;
+  uint8_t* old_data = (uint8_t*)image->data;
+
+  size_t pixel_size = ciColorFmtSize(image->fmt);
+
+  double x_skip = (double)image->w / (double)new_width;
+  double y_skip = (double)image->h / (double)new_height;
+
   double src_x = 0.0;
   double src_y = 0.0;
 
@@ -83,7 +100,7 @@ ci_result_t ciImageScale(image_t* p_image, size_t new_width, size_t new_height)
   {
     for (size_t x = 0; x < new_width; x++)
     {
-      memcpy(&new_data[pixel_size * ((y * new_width) + x)], &old_data[pixel_size * ciImageIndexFromXY(p_image, (size_t)src_x, (size_t)src_y)], pixel_size);
+      memcpy(&new_data[pixel_size * ((y * new_width) + x)], &old_data[pixel_size * ciImageGetIndexXY(image, (size_t)src_x, (size_t)src_y)], pixel_size);
 
       src_x += x_skip;
     }
@@ -93,33 +110,33 @@ ci_result_t ciImageScale(image_t* p_image, size_t new_width, size_t new_height)
   }
 
   // Swap data and free the old data
-  free(p_image->data);
+  free(image->data);
 
-  p_image->data = new_data;
+  image->data = new_data;
 
-  p_image->w = new_width;
-  p_image->h = new_height;
+  image->w = new_width;
+  image->h = new_height;
 
   // Done
   return CI_SUCCESS;
 }
 
-size_t ciImageIndexFromXY(image_t* p_image, size_t x, size_t y)
+size_t ciImageGetIndexXY(image_t image, size_t x, size_t y)
 {
-  return (y * p_image->w) + x;
+  return (y * image->w) + x;
 }
 
-size_t ciImageNumPixels(image_t* p_image)
+size_t ciImageGetNumPixels(image_t image)
 {
-  return p_image->w * p_image->h;
+  return image->w * image->h;
 }
 
-size_t ciImageSize(image_t* p_image)
+size_t ciImageGetSize(image_t image)
 {
-  return p_image->w * p_image->h * ciColorFmtSize(p_image->fmt);
+  return image->w * image->h * ciColorFmtSize(image->fmt);
 }
 
-void ciImageBlit(image_t* src, image_t* dst, size_t x, size_t y)
+void ciImageBlit(image_t src, image_t dst, size_t x, size_t y)
 {
   size_t pixel_size = ciColorFmtSize(src->fmt);
   size_t chunk_size = src->w * pixel_size;
@@ -127,7 +144,7 @@ void ciImageBlit(image_t* src, image_t* dst, size_t x, size_t y)
 
   // Pointers that data is being copied from and to
   uint8_t* from = src->data;
-  uint8_t* to = (uint8_t*)dst->data + (ciImageIndexFromXY(dst, x, y) * pixel_size);
+  uint8_t* to = (uint8_t*)dst->data + (ciImageGetIndexXY(dst, x, y) * pixel_size);
 
   for (size_t i = 0; i < src->h; i++)
   {
@@ -139,11 +156,12 @@ void ciImageBlit(image_t* src, image_t* dst, size_t x, size_t y)
   }
 }
 
-void ciImageFill(image_t* p_image, void* p_color)
+void ciImageFill(image_t image, void* p_color)
 {
-  uint8_t* ptr = (uint8_t*)p_image->data;
-  size_t pixel_size = ciColorFmtSize(p_image->fmt);
-  size_t num_pixels = p_image->w * p_image->h;
+  uint8_t* ptr = (uint8_t*)image->data;
+
+  size_t pixel_size = ciColorFmtSize(image->fmt);
+  size_t num_pixels = image->w * image->h;
 
   for (size_t i = 0; i < num_pixels; i++)
   {
@@ -152,11 +170,12 @@ void ciImageFill(image_t* p_image, void* p_color)
   }
 }
 
-void ciImageForEach(image_t* p_image, for_each_pixel_fn_t func, void* params)
+void ciImageForEach(image_t image, for_each_pixel_fn_t func, void* params)
 {
-  uint8_t* ptr = (uint8_t*)p_image->data;
-  size_t pixel_size = ciColorFmtSize(p_image->fmt);
-  size_t num_pixels = p_image->w * p_image->h;
+  uint8_t* ptr = (uint8_t*)image->data;
+
+  size_t pixel_size = ciColorFmtSize(image->fmt);
+  size_t num_pixels = image->w * image->h;
 
   for (size_t i = 0; i < num_pixels; i++)
   {
@@ -165,11 +184,12 @@ void ciImageForEach(image_t* p_image, for_each_pixel_fn_t func, void* params)
   }
 }
 
-void ciImageForEachI(image_t* p_image, for_each_pixel_i_fn_t func, void* params)
+void ciImageForEachI(image_t image, for_each_pixel_i_fn_t func, void* params)
 {
-  uint8_t* ptr = (uint8_t*)p_image->data;
-  size_t pixel_size = ciColorFmtSize(p_image->fmt);
-  size_t num_pixels = p_image->w * p_image->h;
+  uint8_t* ptr = (uint8_t*)image->data;
+
+  size_t pixel_size = ciColorFmtSize(image->fmt);
+  size_t num_pixels = image->w * image->h;
 
   for (size_t i = 0; i < num_pixels; i++)
   {
@@ -178,14 +198,15 @@ void ciImageForEachI(image_t* p_image, for_each_pixel_i_fn_t func, void* params)
   }
 }
 
-void ciImageForEachXY(image_t* p_image, for_each_pixel_xy_fn_t func, void* params)
+void ciImageForEachXY(image_t image, for_each_pixel_xy_fn_t func, void* params)
 {
-  uint8_t* ptr = (uint8_t*)p_image->data;
-  size_t pixel_size = ciColorFmtSize(p_image->fmt);
+  uint8_t* ptr = (uint8_t*)image->data;
 
-  for (size_t y = 0; y < p_image->h; y++)
+  size_t pixel_size = ciColorFmtSize(image->fmt);
+
+  for (size_t y = 0; y < image->h; y++)
   {
-    for (size_t x = 0; x < p_image->w; x++)
+    for (size_t x = 0; x < image->w; x++)
     {
       func((void*)ptr, x, y, params);
       ptr += pixel_size;
@@ -193,14 +214,14 @@ void ciImageForEachXY(image_t* p_image, for_each_pixel_xy_fn_t func, void* param
   }
 }
 
-void ciImageSnip(image_t* src, image_t* dst, size_t x, size_t y)
+void ciImageSnip(image_t src, image_t dst, size_t x, size_t y)
 {
   size_t pixel_size = ciColorFmtSize(src->fmt);
   size_t chunk_size = dst->w * pixel_size;
   size_t jump = src->w * pixel_size;
 
   // Pointers that data is being copied from and to
-  uint8_t* from = (uint8_t*)src->data + (ciImageIndexFromXY(src, x, y) * pixel_size);
+  uint8_t* from = (uint8_t*)src->data + (ciImageGetIndexXY(src, x, y) * pixel_size);
   uint8_t* to = dst->data;
 
   for (size_t i = 0; i < dst->h; i++)

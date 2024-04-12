@@ -12,7 +12,7 @@
 ci_result_t ciMediaLoadBMP(image_t* p_image, const char* path);
 
 // Saves the image to the given path as a bitmap file
-ci_result_t ciMediaSaveBMP(image_t* p_image, const char* path);
+ci_result_t ciMediaSaveBMP(image_t image, const char* path);
 
 
 #endif // CI_MEDIA_H_

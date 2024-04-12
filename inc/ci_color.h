@@ -8,24 +8,21 @@
 #include <stdint.h>
 
 
-// A color channel
-typedef uint8_t chnl_t;
-
 // A BGR color whose colors can be accessed by channel (foo.r, foo.g, foo.b)
 typedef struct bgr_t
 {
-  chnl_t b;
-  chnl_t g;
-  chnl_t r;
+  uint8_t b;
+  uint8_t g;
+  uint8_t r;
 }
 bgr_t;
 
 // An RGB color whose colors can be accessed by channel (foo.r, foo.g, foo.b)
 typedef struct rgb_t
 {
-  chnl_t r;
-  chnl_t g;
-  chnl_t b;
+  uint8_t r;
+  uint8_t g;
+  uint8_t b;
 }
 rgb_t;
 
@@ -34,10 +31,10 @@ typedef union bgra_t
 {
   struct
   {
-    chnl_t b;
-    chnl_t g;
-    chnl_t r;
-    chnl_t a;
+    uint8_t b;
+    uint8_t g;
+    uint8_t r;
+    uint8_t a;
   };
   uint32_t c;
 }
@@ -48,10 +45,10 @@ typedef union rgba_t
 {
   struct
   {
-    chnl_t r;
-    chnl_t g;
-    chnl_t b;
-    chnl_t a;
+    uint8_t r;
+    uint8_t g;
+    uint8_t b;
+    uint8_t a;
   };
   uint32_t c;
 }
@@ -60,24 +57,18 @@ rgba_t;
 // An enum representing different color formats
 typedef enum color_fmt_t
 {
-  CI_FMT_NONE,  // Undefines/unknown format
+  CI_FMT_NONE = 0x00, // Undefines/unknown format
 
-  CI_FMT_BGR,   // Blue green red
-  CI_FMT_RGB,   // Red green blue
-  CI_FMT_BGRA,  // Blue green red alpha
-  CI_FMT_RGBA,  // Red green blue alpha
+  CI_FMT_BGR  = 0x13, // Blue green red
+  CI_FMT_RGB  = 0x23, // Red green blue
+  CI_FMT_BGRA = 0x14, // Blue green red alpha
+  CI_FMT_RGBA = 0x24, // Red green blue alpha
 }
 color_fmt_t;
 
 
 // The size of the color format in bytes (returns 0 if invalid)
 size_t ciColorFmtSize(color_fmt_t f);
-
-// The color channel as a floating point value (0-1)
-float ciChnlToFloat(chnl_t c);
-
-// The float as a color channel
-chnl_t ciChnlFromFloat(float c);
 
 
 #endif // CI_COLOR_H_

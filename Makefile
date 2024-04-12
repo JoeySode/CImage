@@ -1,9 +1,24 @@
-CFLAGS = -I ./inc/ -Wall -Wextra -O3
+CFLAGS = -I./inc/ -Wall -Wextra -O3
 
 SRC_DIR = src
 BUILD_DIR = build
 
-# Detect OS
+# Detect OS and architecture
+UNAME_S := $(shell uname -s)
+UNAME_M := $(shell uname -m)
+
+ifeq ($(UNAME_S),Linux)
+    CC = gcc
+    ifeq ($(UNAME_M),x86_64)
+        CFLAGS += -m64
+    endif
+    ifeq ($(UNAME_M),arm64)
+        CFLAGS += -march=armv8-a
+    endif
+endif
+ifeq ($(UNAME_S),Darwin)
+    CC = clang
+endif
 ifeq ($(OS),Windows_NT)
     LIB_NAME = libcimage.lib
     MKDIR = if not exist "$(1)" mkdir "$(1)"
