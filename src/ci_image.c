@@ -8,6 +8,10 @@
 #include <stdio.h>
 
 
+// Converts the x and y to an index for a 1D array
+#define CI_XY_TO_INDEX(x, y, w) (((y) * (w)) + (x))
+
+
 typedef struct image_t__
 {
   void* data;       // A pointer to the image's data
@@ -100,7 +104,7 @@ ci_result_t ciImageScale(image_t image, size_t new_width, size_t new_height)
   {
     for (size_t x = 0; x < new_width; x++)
     {
-      memcpy(&new_data[pixel_size * ((y * new_width) + x)], &old_data[pixel_size * ciImageGetIndexXY(image, (size_t)src_x, (size_t)src_y)], pixel_size);
+      memcpy(&new_data[pixel_size * ((y * new_width) + x)], &old_data[pixel_size * CI_XY_TO_INDEX((size_t)src_x, (size_t)src_y, image->w)], pixel_size);
 
       src_x += x_skip;
     }
@@ -123,7 +127,7 @@ ci_result_t ciImageScale(image_t image, size_t new_width, size_t new_height)
 
 size_t ciImageGetIndexXY(image_t image, size_t x, size_t y)
 {
-  return (y * image->w) + x;
+  return CI_XY_TO_INDEX(x, y, image->w);
 }
 
 size_t ciImageGetNumPixels(image_t image)
@@ -144,7 +148,7 @@ void ciImageBlit(image_t src, image_t dst, size_t x, size_t y)
 
   // Pointers that data is being copied from and to
   uint8_t* from = src->data;
-  uint8_t* to = (uint8_t*)dst->data + (ciImageGetIndexXY(dst, x, y) * pixel_size);
+  uint8_t* to = (uint8_t*)dst->data + (CI_XY_TO_INDEX(x, y, dst->w) * pixel_size);
 
   for (size_t i = 0; i < src->h; i++)
   {
@@ -167,6 +171,54 @@ void ciImageFill(image_t image, void* p_color)
   {
     memcpy(ptr, p_color, pixel_size);
     ptr += pixel_size;
+  }
+}
+
+void ciImageFlipH(image_t image)
+{
+  uint8_t* data = (uint8_t*)image->data;
+
+  size_t pixel_size = ciColorFmtSize(image->fmt);
+  size_t half_w = image->w / 2;
+
+  uint32_t temp; // Temporary value when swapping
+
+  for (size_t y = 0; y < image->h; y++)
+  {
+    for (size_t x = 0; x < half_w; x++)
+    {
+      void* src = data + (CI_XY_TO_INDEX(x, y, image->w) * pixel_size);
+      void* dst = data + (CI_XY_TO_INDEX(image->w - x, y, image->w) * pixel_size);
+
+      memcpy(&temp, dst, pixel_size);
+
+      memcpy(dst, src, pixel_size);
+      memcpy(src, &temp, pixel_size);
+    }
+  }
+}
+
+void ciImageFlipV(image_t image)
+{
+  uint8_t* data = (uint8_t*)image->data;
+
+  size_t pixel_size = ciColorFmtSize(image->fmt);
+  size_t half_h = image->h / 2;
+
+  uint32_t temp; // Temporary value when swapping
+
+  for (size_t y = 0; y < half_h; y++)
+  {
+    for (size_t x = 0; x < image->w; x++)
+    {
+      void* src = data + (CI_XY_TO_INDEX(x, y, image->w) * pixel_size);
+      void* dst = data + (CI_XY_TO_INDEX(x, image->h - y, image->w) * pixel_size);
+
+      memcpy(&temp, dst, pixel_size);
+
+      memcpy(dst, src, pixel_size);
+      memcpy(src, &temp, pixel_size);
+    }
   }
 }
 
@@ -221,7 +273,7 @@ void ciImageSnip(image_t src, image_t dst, size_t x, size_t y)
   size_t jump = src->w * pixel_size;
 
   // Pointers that data is being copied from and to
-  uint8_t* from = (uint8_t*)src->data + (ciImageGetIndexXY(src, x, y) * pixel_size);
+  uint8_t* from = (uint8_t*)src->data + (CI_XY_TO_INDEX(x, y, src->w) * pixel_size);
   uint8_t* to = dst->data;
 
   for (size_t i = 0; i < dst->h; i++)

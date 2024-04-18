@@ -65,6 +65,12 @@ void ciImageBlit(image_t src, image_t dst, size_t x, size_t y);
 // Fills the entire image with the given color (the color must match the image's color format)
 void ciImageFill(image_t image, void* p_color);
 
+// Flips the image horizontally
+void ciImageFlipH(image_t image);
+
+// Flips the image vertically
+void ciImageFlipV(image_t image);
+
 // Calls the given function for each pixel in the image
 void ciImageForEach(image_t image, for_each_pixel_fn_t func, void* params);
 
