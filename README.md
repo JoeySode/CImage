@@ -12,12 +12,10 @@ To clean, run 'make clean' which will remove the build folder entirely.
 ## Usage
 
 ```
-image_t image;
+CI_Image image;
 ciMediaLoadBMP(&image, "example.bmp");
 
-bgra_t* pixels = (bgra_t*)image.data;
-for (size_t i = 0; i < image.w * image.h)
-    pixels[i].r = 255;
+ciTransformScale(&image, 200, 500);
 
 ciMediaSaveBMP(&image, "result.bmp");
 ciDestroyImage(&image);

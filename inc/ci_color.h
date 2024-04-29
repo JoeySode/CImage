@@ -1,6 +1,5 @@
 
 #ifndef CI_COLOR_H_
-
 #define CI_COLOR_H_
 
 

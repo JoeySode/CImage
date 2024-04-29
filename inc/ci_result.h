@@ -1,6 +1,5 @@
 
 #ifndef CI_RESULT_H_
-
 #define CI_RESULT_H_
 
 
